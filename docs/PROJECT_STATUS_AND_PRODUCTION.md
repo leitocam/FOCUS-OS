@@ -50,7 +50,7 @@ CRON_SECRET=
 4. En Supabase Auth, configurar la Site URL y el callback de autenticación de producción.
 5. En Google Cloud OAuth, añadir `https://tu-dominio.com/api/integrations/google/callback` a los redirect URIs autorizados.
 6. Ejecutar las migraciones en el proyecto Supabase de producción.
-7. Configurar `CRON_SECRET` en Vercel. `vercel.json` ejecuta la sincronización cada 4 horas.
+7. Configurar `CRON_SECRET` en Vercel. En Hobby, `vercel.json` ejecuta la sincronización diaria a las 08:00 de Bolivia (12:00 UTC); `SYNC NOW` permite actualizar manualmente cuando lo necesites.
 7. Probar: registro, confirmación de correo, login, RLS, pasantía, conexión Calendar, sync y creación de evento.
 
 ## Seguridad
