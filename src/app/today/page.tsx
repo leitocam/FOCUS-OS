@@ -6,7 +6,9 @@ import { TaskPanel } from "@/components/task-panel";
 import { TaskMetric } from "@/components/task-metric";
 import { InternshipMetric, InternshipStatus } from "@/components/internship-summary";
 import { Dayline, type DaylineEntry } from "@/components/dayline";
+import { GymWindow } from "@/components/gym-window";
 import { classesOnDate, laPazDate } from "@/modules/schedule/semester-2026";
+import { dayCapacity } from "@/modules/schedule/day-capacity";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
@@ -39,11 +41,12 @@ export default async function TodayPage() {
   const weekStart = `${dateAtNoon.toISOString().slice(0, 10)}T00:00:00-04:00`;
 
   const [{ data: calendarEvents }, { data: focusSessions }] = await Promise.all([
-    supabase.from("calendar_events").select("id, title, start_at, end_at, location, stable_key").eq("user_id", userId).gte("start_at", startOfDay).lte("start_at", endOfDay).order("start_at", { ascending: true }),
+    supabase.from("calendar_events").select("id, title, start_at, end_at, location, stable_key, is_all_day").eq("user_id", userId).gte("start_at", startOfDay).lte("start_at", endOfDay).order("start_at", { ascending: true }),
     supabase.from("focus_sessions").select("duration_seconds").eq("user_id", userId).not("ended_at", "is", null).gte("started_at", weekStart),
   ]);
 
   const classes = classesOnDate(today);
+  const capacity = dayCapacity(today, calendarEvents ?? []);
   const personalEvents: DaylineEntry[] = (calendarEvents ?? [])
     .filter((event) => !event.stable_key?.startsWith("ucb-cba-2-2026:"))
     .map((event) => ({
@@ -79,6 +82,8 @@ export default async function TodayPage() {
       <div><strong>{focusLabel.slice(0, 2)}<span>H</span> {focusLabel.slice(4, 6)}<span>M</span></strong><SystemLabel>FOCUS / THIS WEEK</SystemLabel><small>COMPLETED SESSIONS / LIVE DATA</small></div>
       <TaskMetric userId={userId} />
     </section>
+
+    <GymWindow date={today} freePercent={capacity.freePercent} freeMinutes={capacity.freeMinutes} slots={capacity.gymSlots} />
 
     <section className="content-grid">
       <Dayline entries={dayline} dateLabel={dateLabel} />

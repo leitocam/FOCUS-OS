@@ -28,6 +28,8 @@ export async function POST(request: NextRequest) {
     if ((conflicts?.length ?? 0) || classConflicts.length) return NextResponse.json({ error: "This slot conflicts with your calendar or class schedule", conflicts: [...(conflicts ?? []).map((event) => event.title), ...classConflicts.map((entry) => entry.title)] }, { status: 409 });
     const token = await validGoogleAccessToken(connection, async (values) => { await admin.from("calendar_connections").update(values).eq("id", connection.id); });
     const created = await googleApi<{ id: string }>(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(connection.calendar_id)}/events`, token, { method: "POST", body: JSON.stringify({ summary: body.title.trim(), start: { dateTime: body.start, timeZone: "America/La_Paz" }, end: { dateTime: body.end, timeZone: "America/La_Paz" }, extendedProperties: { private: { source: "FOCUS_OS" } } }) });
+    const { error: storeError } = await admin.from("calendar_events").upsert({ connection_id: connection.id, user_id: jwt.claims.sub, external_id: created.id, title: body.title.trim(), start_at: start.toISOString(), end_at: end.toISOString(), timezone: "America/La_Paz", location: null, source: "FOCUS_OS", is_all_day: false }, { onConflict: "connection_id,external_id" });
+    if (storeError) throw storeError;
     return NextResponse.json({ id: created.id });
   } catch { return NextResponse.json({ error: "Event creation failed" }, { status: 500 }); }
 }
