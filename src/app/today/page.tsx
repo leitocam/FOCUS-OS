@@ -4,6 +4,7 @@ import { FocusPanel } from "@/components/focus-panel";
 import { StartFocusButton } from "@/components/start-focus-button";
 import { TaskPanel } from "@/components/task-panel";
 import { TaskMetric } from "@/components/task-metric";
+import { FocusMetric } from "@/components/focus-metric";
 import { InternshipMetric, InternshipStatus } from "@/components/internship-summary";
 import { Dayline, type DaylineEntry } from "@/components/dayline";
 import { GymWindow } from "@/components/gym-window";
@@ -40,9 +41,8 @@ export default async function TodayPage() {
   dateAtNoon.setUTCDate(dateAtNoon.getUTCDate() - daysSinceMonday);
   const weekStart = `${dateAtNoon.toISOString().slice(0, 10)}T00:00:00-04:00`;
 
-  const [{ data: calendarEvents }, { data: focusSessions }] = await Promise.all([
+  const [{ data: calendarEvents }] = await Promise.all([
     supabase.from("calendar_events").select("id, title, start_at, end_at, location, stable_key, is_all_day").eq("user_id", userId).gte("start_at", startOfDay).lte("start_at", endOfDay).order("start_at", { ascending: true }),
-    supabase.from("focus_sessions").select("duration_seconds").eq("user_id", userId).not("ended_at", "is", null).gte("started_at", weekStart),
   ]);
 
   const classes = classesOnDate(today);
@@ -63,8 +63,6 @@ export default async function TodayPage() {
   const nextEntry = dayline.find((entry) => dateAt(today, entry.start).getTime() > now.getTime()) ?? null;
   const nextStart = nextEntry ? dateAt(today, nextEntry.start) : null;
   const availability = nextStart ? durationLabel(nextStart.getTime() - now.getTime()) : "—";
-  const focusSeconds = (focusSessions ?? []).reduce((total, session) => total + (session.duration_seconds ?? 0), 0);
-  const focusLabel = durationLabel(focusSeconds * 1000);
   const dateLabel = new Intl.DateTimeFormat("en-GB", { timeZone: timezone, weekday: "short", day: "2-digit", month: "short" }).format(new Date(`${today}T12:00:00-04:00`)).toUpperCase();
   const footerDate = new Intl.DateTimeFormat("en-GB", { timeZone: timezone, weekday: "short", day: "2-digit", month: "short", year: "numeric" }).format(new Date(`${today}T12:00:00-04:00`)).toUpperCase();
   const commitmentText = nextEntry ? nextEntry.title : "NO MORE COMMITMENTS";
@@ -79,7 +77,7 @@ export default async function TodayPage() {
 
     <section className="metric-strip" aria-label="Today metrics">
       <InternshipMetric userId={userId} />
-      <div><strong>{focusLabel.slice(0, 2)}<span>H</span> {focusLabel.slice(4, 6)}<span>M</span></strong><SystemLabel>FOCUS / THIS WEEK</SystemLabel><small>COMPLETED SESSIONS / LIVE DATA</small></div>
+      <FocusMetric userId={userId} weekStart={weekStart} />
       <TaskMetric userId={userId} />
     </section>
 
